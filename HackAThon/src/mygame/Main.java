@@ -30,6 +30,7 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Sphere;
+import com.jme3.scene.shape.Sphere.TextureMode;
 import com.jme3.texture.Texture;
 import com.jme3.texture.Texture.WrapMode;
 import com.jme3.ui.Picture;
@@ -94,11 +95,12 @@ public class Main extends SimpleApplication implements ActionListener{
     
     
         static {
-        /*
+            /*
          * Initialize the cannon ball geometry
          */
-        sphere = new Sphere(16, 16, 0.4f, true, false);
-        sphere.setTextureMode(Sphere.TextureMode.Projected);
+        sphere = new Sphere(50, 50, 0.03f);
+        sphere.setTextureMode(TextureMode.Projected);
+
         /*
          * Initialize the brick geometry
          */
@@ -192,7 +194,9 @@ public class Main extends SimpleApplication implements ActionListener{
         	Box b = new Box(Vector3f.ZERO, 1, 1, 1); // create cube shape at the origin
         	geom[i] = new Geometry("Box", b);  // create cube geometry from the shape
         	Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
-        	mat.setColor("Color", ColorRGBA.Magenta);   // set color of material to blue
+                Texture texture = assetManager.loadTexture("Textures/zombie.jpg");
+                mat.setTexture("ColorMap", texture);
+
         	geom[i].setMaterial(mat);                   // set the cube's material
         
         }
@@ -289,7 +293,8 @@ public class Main extends SimpleApplication implements ActionListener{
                 Geometry geo = closest.getGeometry();
                 if ( closest.getDistance() < 9.0f ) {                    
 
-                    geo.getMaterial().setColor("Color", ColorRGBA.Black);
+                    if (geo.getParent().equals(treasureChests)) {
+                       geo.getMaterial().setColor("Color", ColorRGBA.Black);
                     geo.removeFromParent();
                     rootNode.attachChild(geo);
                     int xCoor = (MAX_X/2) - ((settings.getWidth() / 4) / 2);
@@ -297,7 +302,9 @@ public class Main extends SimpleApplication implements ActionListener{
                     setPicture("Materials/+500.png", "Treasure", xCoor, yCoor);
                     
                     Timer task = new Timer(1, "removePicture");
-                    tasks.add(task);
+                    tasks.add(task); 
+                    }
+                    
 
                 }
 
@@ -332,6 +339,8 @@ public class Main extends SimpleApplication implements ActionListener{
 
         public void onAction(String name, boolean isPressed, float tpf) {
             if (name.equals("shoot")  && !isPressed) {
+                
+
                 //Checks to see if you have anymore ammo
                 //if you do not then it shows you need to reload your gun
                 if(ammo==0 && !reload){
@@ -343,40 +352,40 @@ public class Main extends SimpleApplication implements ActionListener{
                    pic.setPosition(960, 0);
                    pic.setName("Reload");
                    guiNode.attachChild(pic);
-                   
-                    // 1. Reset resulrs list.
-                CollisionResults results = new CollisionResults();
-                 // 2. Aim the ray from loc to cam direction.
-                 Ray ray = new Ray(cam.getLocation(), cam.getDirection());
-                 // 3. Collect intersections betwen Ray and Shootables in results list. 
-                  shootables.collideWith(ray, results);
 
-                 // 5. Use the results (we mark the hit object)
-                  if (results.size() > 0) {
-                      System.out.println(results.size() + "\n\n");
-                // The closest collision point is what was truly hit:
-                     CollisionResult closest = results.getClosestCollision();
-                     Geometry geo = closest.getGeometry();
-                   geo.removeFromParent();
-
-                 }
-                
-                
                    
                 }
                 //If you have ammo then shoot! Depreciates the value by 1 everytime
                else if(!reload && ammo > 0){
+                   
+
+
                    //   Reset results list.
                     CollisionResults results = new CollisionResults();
                     //  Aim the ray from cam loc to cam direction.
                     Ray ray = new Ray(cam.getLocation(), cam.getDirection());
                     //  Collect intersections between Ray and Shootables in results list.
                     rootNode.collideWith(ray, results);
+                    
+                    // 3. Collect intersections betwen Ray and Shootables in results list. 
+                    shootables.collideWith(ray, results);
+
+                    // 5. Use the results (we mark the hit object)
+                    if (results.size() > 0) {
+                        System.out.println(results.size() + "\n\n");
+                        // The closest collision point is what was truly hit:
+                        CollisionResult closest = results.getClosestCollision();
+                        Geometry geo = closest.getGeometry();
+                        if (geo.getParent().equals(shootables)) {
+                            geo.removeFromParent();
+                        }
+                        
+
+                    }
+                    
                     for (int i = 0; i < results.size(); i++) {
                     // For each hit, we know distance, impact point, name of geometry.
                     String hit = results.getCollision(i).getGeometry().getName();
-                   // System.out.println("* Collision #" + i);
-                    System.out.println("  You shot " + hit );
                     
                     if(hit.toString().equalsIgnoreCase("Brick"))
                     {
@@ -403,6 +412,15 @@ public class Main extends SimpleApplication implements ActionListener{
                   }*/
                     makeBullet();
                     ammo = ammo - 1;
+//                    guiNode.detachChildNamed("hud");
+//        String strI = Integer.toString(ammo);
+//        BitmapText hudText = new BitmapText(guiFont, false);          
+//        hudText.setSize(30);      // font size
+//        hudText.setColor(ColorRGBA.Blue);                             // font color
+//        hudText.setText("Ammo: " + strI);             // the text
+//        hudText.setLocalTranslation(60, 700, 0); // position
+//        hudText.setName("hud");
+//        guiNode.attachChild(hudText);
                 }
                 
                 
@@ -431,6 +449,15 @@ public class Main extends SimpleApplication implements ActionListener{
        public void run() {
          ammo = 12;
          reload = false;
+//         guiNode.detachChildNamed("hud");
+//        String strI = Integer.toString(ammo);
+//        BitmapText hudText = new BitmapText(guiFont, false);          
+//        hudText.setSize(30);      // font size
+//        hudText.setColor(ColorRGBA.Blue);                             // font color
+//        hudText.setText("Ammo: " + strI);             // the text
+//        hudText.setLocalTranslation(60, 700, 0); // position
+//        hudText.setName("hud");
+//        guiNode.attachChild(hudText);
        }
      };
 
@@ -463,7 +490,8 @@ public class Main extends SimpleApplication implements ActionListener{
 	    Box box = new Box(new Vector3f(x, y, z), 1, 1, 1);
 	    Geometry cube = new Geometry(name, box);
 	    Material mat1 = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-	    mat1.setColor("Color", ColorRGBA.randomColor());
+	    Texture texture = assetManager.loadTexture("Textures/zombie.jpg");
+            mat1.setTexture("ColorMap", texture);
 	    cube.setMaterial(mat1);
 	    return cube;
 	  }
@@ -478,6 +506,7 @@ public class Main extends SimpleApplication implements ActionListener{
         Texture texture = assetManager.loadTexture("Textures/panels.jpg");
         mat1.setTexture("ColorMap", texture);
         cube.setMaterial(mat1);
+//        setPicture("Materials/Big_Copper_Keyhole_PNG_Clipart_by_FantasyStock.png", );
         return cube;
     }
     
@@ -485,7 +514,6 @@ public class Main extends SimpleApplication implements ActionListener{
         Picture pic = new Picture("HUD Picture");
         pic.setImage(assetManager, pictureLocation, true);
         pic.setWidth(settings.getWidth()/4);
-        System.out.println(settings.getWidth()/4 + " + height: " + settings.getHeight()/4);
         pic.setHeight(settings.getHeight()/4);
         pic.setPosition(xPosition, yPosition);
         pic.setName(name);
@@ -525,7 +553,7 @@ public class Main extends SimpleApplication implements ActionListener{
         crh.setImage(assetManager, "Textures/crosshairs.png", true);
         crh.setWidth(280);
         crh.setHeight(280);
-        crh.setPosition(500,200);
+        crh.setPosition(504,212);
         crh.setName("crosshair");
         guiNode.attachChild(crh);
     }
@@ -583,7 +611,7 @@ public class Main extends SimpleApplication implements ActionListener{
                 makeBrick(vt);
             }
             startpt = -startpt;
-            height += 2* brickHeight;
+            height += 2 * brickHeight;
         }
     }
     
@@ -630,12 +658,10 @@ public class Main extends SimpleApplication implements ActionListener{
         // Add physical ball to physics space
         ballGeo.addControl(ballPhy);
         bulletAppState.getPhysicsSpace().add(ballPhy);
-        ballPhy.setCcdMotionThreshold(25f);
+        ballPhy.setCcdMotionThreshold(5f);
         // Accelerate the physical ball to shoot it
-        ballPhy.setLinearVelocity(cam.getDirection().mult(10f));
+        ballPhy.setLinearVelocity(cam.getDirection().mult(40f));
         ballPhy.setGravity(Vector3f.ZERO);
-       
-        
         
     }
     
