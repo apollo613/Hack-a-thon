@@ -151,8 +151,6 @@ public class Main extends SimpleApplication implements ActionListener{
     }
 
     private void setUpLight() {
-        
-        viewPort.setBackgroundColor(ColorRGBA.Blue);
         // We add light so we see the scene
         AmbientLight al = new AmbientLight();
         al.setColor(ColorRGBA.White.mult(1.3f));
