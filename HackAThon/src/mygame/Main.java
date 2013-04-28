@@ -92,8 +92,9 @@ public class Main extends SimpleApplication implements ActionListener{
     
     private float timeElapsed;
     private int playerHealth;
-    private ArrayList<Geometry> aliveEnemies;
-    private ArrayList<Geometry> deadFish;
+    private ArrayList<Spatial> aliveEnemies;
+    private ArrayList<Spatial> deadFish;
+    Spatial fish;
     
     
         static {
@@ -131,9 +132,18 @@ public class Main extends SimpleApplication implements ActionListener{
         reload = false;
         
         tasks = new ArrayList<Timer>();
-        deadFish = new ArrayList<Geometry>();
-        aliveEnemies = new ArrayList<Geometry>();
+        deadFish = new ArrayList<Spatial>();
+        aliveEnemies = new ArrayList<Spatial>();
         
+        
+        // add a fish...
+        fish = assetManager.loadModel("Models/fish1.obj");
+        Material mat_default = new Material(
+                assetManager, "Common/MatDefs/Misc/ShowNormals.j3md");
+//        mat_default.setColor("Color", ColorRGBA.Blue);
+        fish.setMaterial(mat_default);
+        fish.scale(5f);
+        rootNode.attachChild(fish);
         /*
          * Set up physics
          */
@@ -190,33 +200,39 @@ public class Main extends SimpleApplication implements ActionListener{
         
         for(int i=0; i<enemyNum; i++)
 	{
-            if (i%3 == 0 && i%5 == 0) {
-                Box b = new Box(Vector3f.ZERO, 1, 1, 1); // create cube shape at the origin
-        	geom[i] = new Geometry("Box", b);  // create cube geometry from the shape
-        	Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
-                Texture texture = assetManager.loadTexture("Textures/zombie_little_mermaid.jpg");
-                mat.setTexture("ColorMap", texture);
-                geom[i].setMaterial(mat);
-            } else if (i % 5 == 0) {
-                Box b = new Box(Vector3f.ZERO, 1, 1, 1); // create cube shape at the origin
-        	geom[i] = new Geometry("Box", b);  // create cube geometry from the shape
-        	Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
-                Texture texture = assetManager.loadTexture("Textures/zombie.jpg");
-                mat.setTexture("ColorMap", texture);
-
-        	geom[i].setMaterial(mat);                   // set the cube's material
-            } else {
-                Box b = new Box(Vector3f.ZERO, 1, 1, 1); // create cube shape at the origin
-        	geom[i] = new Geometry("Box", b);  // create cube geometry from the shape
-        	Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
-                Texture texture = assetManager.loadTexture("Textures/fishPic.jpg");
-                mat.setTexture("ColorMap", texture);
-
-        	geom[i].setMaterial(mat);                   // set the cube's material
-            }
+//            if (i%3 == 0 && i%5 == 0) {
+//                Box b = new Box(Vector3f.ZERO, 1, 1, 1); // create cube shape at the origin
+//        	geom[i] = new Geometry("Box", b);  // create cube geometry from the shape
+//        	Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
+//                Texture texture = assetManager.loadTexture("Textures/zombie_little_mermaid.jpg");
+//                mat.setTexture("ColorMap", texture);
+//                geom[i].setMaterial(mat);
+//            } else if (i % 5 == 0) {
+//                Box b = new Box(Vector3f.ZERO, 1, 1, 1); // create cube shape at the origin
+//        	geom[i] = new Geometry("Box", b);  // create cube geometry from the shape
+//        	Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
+//                Texture texture = assetManager.loadTexture("Textures/zombie.jpg");
+//                mat.setTexture("ColorMap", texture);
+//
+//        	geom[i].setMaterial(mat);                   // set the cube's material
+//            } else {
+//                Box b = new Box(Vector3f.ZERO, 1, 1, 1); // create cube shape at the origin
+//        	geom[i] = new Geometry("Box", b);  // create cube geometry from the shape
+//        	Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
+//                Texture texture = assetManager.loadTexture("Textures/fishPic.jpg");
+//                mat.setTexture("ColorMap", texture);
+//
+//        	geom[i].setMaterial(mat);                   // set the cube's material
+//            }
             
+                    fish = assetManager.loadModel("Models/fish1.obj");
+        Material mat = new Material(
+                assetManager, "Common/MatDefs/Misc/ShowNormals.j3md");
+//        mat_default.setColor("Color", ColorRGBA.Blue);
+        fish.setMaterial(mat);
+        fish.scale(5f);
         	
-                aliveEnemies.add(geom[i]);
+                aliveEnemies.add(fish);
         
         }
 
@@ -224,8 +240,8 @@ public class Main extends SimpleApplication implements ActionListener{
         {
             int x = FastMath.nextRandomInt(-200, 200);
             int z = FastMath.nextRandomInt(-200, 200);
-            geom[j].move(x, 5, z);
-            shootables.attachChild(geom[j]);    
+            aliveEnemies.get(j).move(x, 5, z);
+            shootables.attachChild(aliveEnemies.get(j));    
         }
         
     }
@@ -272,15 +288,17 @@ public class Main extends SimpleApplication implements ActionListener{
         player.setWalkDirection(walkDirection);
         cam.setLocation(player.getPhysicsLocation());
         
-        for( Geometry enemy: aliveEnemies) {
+        for( Spatial enemy: aliveEnemies) {
             Vector3f vec = player.getPhysicsLocation().subtract(enemy.getLocalTranslation()).normalize().mult(5);
                 enemy.move(vec.mult(tpf));
         }
         
-        for (Geometry fish: deadFish) {
+        for (Spatial fish: deadFish) {
             Vector3f vec = new Vector3f(0,1000,0).subtract(fish.getLocalTranslation()).normalize().mult(5);
             fish.move(vec.mult(tpf/2));
         }
+//        Vector3f vec = new Vector3f(0,1000,0).subtract(fish.getLocalTranslation()).normalize().mult(5);
+//            fish.move(vec.mult(tpf/2));
     }
     
     private boolean isTreasureChest() {
