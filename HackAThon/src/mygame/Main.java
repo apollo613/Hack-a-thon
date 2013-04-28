@@ -137,12 +137,6 @@ public class Main extends SimpleApplication implements ActionListener{
         
         
         // add a fish...
-        fish = assetManager.loadModel("Models/fish1.obj");
-        Material mat_default = new Material(
-                assetManager, "Common/MatDefs/Misc/ShowNormals.j3md");
-//        mat_default.setColor("Color", ColorRGBA.Blue);
-        fish.setMaterial(mat_default);
-        fish.scale(5f);
         rootNode.attachChild(fish);
         /*
          * Set up physics
@@ -226,11 +220,16 @@ public class Main extends SimpleApplication implements ActionListener{
 //            }
             
                     fish = assetManager.loadModel("Models/fish1.obj");
-        Material mat = new Material(
-                assetManager, "Common/MatDefs/Misc/ShowNormals.j3md");
-//        mat_default.setColor("Color", ColorRGBA.Blue);
+//        Material mat = new Material(
+//                assetManager, "Common/MatDefs/Misc/ShowNormals.j3md");
+        
+        Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
+        Texture texture = assetManager.loadTexture("Textures/PTER_01.jpg");
+        mat.setTexture("ColorMap", texture);
         fish.setMaterial(mat);
-        fish.scale(5f);
+//        mat_default.setColor("Color", ColorRGBA.Blue);
+//        fish.setMaterial(mat);
+        fish.scale(2f);
         	
                 aliveEnemies.add(fish);
         
