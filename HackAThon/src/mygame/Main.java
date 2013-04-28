@@ -1,6 +1,7 @@
 package mygame;
 
 import com.jme3.app.SimpleApplication;
+import com.jme3.asset.TextureKey;
 import com.jme3.asset.plugins.ZipLocator;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.collision.shapes.CapsuleCollisionShape;
@@ -8,22 +9,43 @@ import com.jme3.bullet.collision.shapes.CollisionShape;
 //import com.jme3.bullet.control.CharacterControl;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.bullet.util.CollisionShapeFactory;
+import com.jme3.collision.CollisionResult;
+import com.jme3.collision.CollisionResults;
+import com.jme3.font.BitmapText;
 import com.jme3.input.KeyInput;
+import com.jme3.input.MouseInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
+import com.jme3.input.controls.MouseButtonTrigger;
 import com.jme3.light.AmbientLight;
 import com.jme3.light.DirectionalLight;
+import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.Ray;
+import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
+import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import com.jme3.scene.shape.Box;
+import com.jme3.scene.shape.Sphere;
+import com.jme3.texture.Texture;
+import com.jme3.texture.Texture.WrapMode;
+import com.jme3.ui.Picture;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * test
  * @author normenhansen
  */
 public class Main extends SimpleApplication implements ActionListener{
+    
 
+    private Node treasureChests;
     private Spatial sceneModel;
     private BulletAppState bulletAppState;
     private RigidBodyControl landscape;
@@ -33,6 +55,57 @@ public class Main extends SimpleApplication implements ActionListener{
     private boolean right = false;
     private boolean up = false;
     private boolean down = false;
+    private static final ScheduledExecutorService worker = 
+            Executors.newSingleThreadScheduledExecutor();
+    private ArrayList<Timer> tasks;
+       // Prepare the Physics Application State (jBullet)
+    
+    // Prepare Materials
+    Material wallMat;
+    Material stoneMat;
+    Material floorMat;
+    
+    // Prepare geometries and physical nodes for bricks and cannon balls.
+    private RigidBodyControl brickPhy;
+    private static final Box box;
+    private RigidBodyControl ballPhy;
+    private static final Sphere sphere;
+    private RigidBodyControl floorPhy;
+    private static final Box floor;
+    
+    // Dimensions used for bricks and walls
+    private static final float brickLength = 0.48f;
+    private static final float brickWidth = 0.24f;
+    private static final float brickHeight = 0.12f;
+    private static final int MAX_X = 1280;
+    private static final int MAX_Y = 720;
+    
+        //Make a timer for the bullet shots
+    private int ammo;
+    private boolean reload;
+    
+    private float timeElapsed = 0;
+    
+    
+        static {
+        /*
+         * Initialize the cannon ball geometry
+         */
+        sphere = new Sphere(32, 32, 0.4f, true, false);
+        sphere.setTextureMode(Sphere.TextureMode.Projected);
+        /*
+         * Initialize the brick geometry
+         */
+        box = new Box(Vector3f.ZERO, brickLength, brickHeight, brickWidth);
+        box.scaleTextureCoordinates(new Vector2f(1f, 0.5f));
+        /*
+         * Initialize the floor geometry
+         */
+        floor = new Box(Vector3f.ZERO, 10f, 0.1f, 5f);
+        floor.scaleTextureCoordinates(new Vector2f(3, 6));
+    }
+
+    
     
     public static void main(String[] args) {
         Main app = new Main();
@@ -41,12 +114,14 @@ public class Main extends SimpleApplication implements ActionListener{
 
     @Override
     public void simpleInitApp() {
+        
+        tasks = new ArrayList<Timer>();
+        
         /*
          * Set up physics
          */
         bulletAppState = new BulletAppState();
         stateManager.attach(bulletAppState);
-//        bulletAppState.getPhysicsSpace().enableDebug(assetManager);
         
         // We re-use the flyby camera for rotation, while positioning is handled by pyhsics
         viewPort.setBackgroundColor(new ColorRGBA(0.7f, 0.8f, 1f, 1f));
@@ -66,6 +141,9 @@ public class Main extends SimpleApplication implements ActionListener{
         CollisionShape sceneShape = CollisionShapeFactory.createMeshShape( (Node) sceneModel);
         landscape = new RigidBodyControl(sceneShape, 0);
         sceneModel.addControl(landscape);
+        
+        loadTreasureChests();
+
         
         /*
          * We set up collision detection for the player by creating
@@ -88,6 +166,11 @@ public class Main extends SimpleApplication implements ActionListener{
         rootNode.attachChild(sceneModel);
         bulletAppState.getPhysicsSpace().add(landscape);
         bulletAppState.getPhysicsSpace().add(player);
+        
+        setupPhysics();
+        
+        ammo = 12;
+        reload = false;
     }
 
     /**
@@ -99,6 +182,23 @@ public class Main extends SimpleApplication implements ActionListener{
      */
     @Override
     public void simpleUpdate(float tpf) {
+        
+        for ( int i = 0; i < tasks.size(); i++ ) {
+            
+            Timer t = tasks.get(i);
+            t.timeElapsed += tpf;
+            if (t.timeElapsed > t.delayTime) {
+                // Call method
+                if (t.task.equals("removePicture")) {
+                    removePicture("Treasure");
+                } else if (t.task.equals("loadAmmo")) {
+                    guiNode.detachChildNamed("Reload");
+                }
+                tasks.remove(t);
+            }
+        }
+        
+        
         Vector3f camDir = cam.getDirection().clone().multLocal(0.6f);
         Vector3f camLeft = cam.getLeft().clone().multLocal(0.4f);
         walkDirection.set(0, 0, 0);
@@ -134,6 +234,35 @@ public class Main extends SimpleApplication implements ActionListener{
             down = value;
         } else if (binding.equals("Jump")) {
             player.jump();
+        } else if (binding.equals("Interact")) {
+            // 1. Reset resulrs list.
+            CollisionResults results = new CollisionResults();
+            // 2. Aim the ray from loc to cam direction.
+            Ray ray = new Ray(cam.getLocation(), cam.getDirection());
+            // 3. Collect intersections betwen Ray and Shootables in results list. 
+            treasureChests.collideWith(ray, results);
+
+            // 5. Use the results (we mark the hit object)
+            if (results.size() > 0) {
+                // The closest collision point is what was truly hit:
+                CollisionResult closest = results.getClosestCollision();
+
+                if ( closest.getDistance() < 9.0f ) {                    
+                    
+                    Geometry geo = closest.getGeometry();
+                    geo.getMaterial().setColor("Color", ColorRGBA.Black);
+                    geo.removeFromParent();
+                    rootNode.attachChild(geo);
+                    int xCoor = (MAX_X/2) - ((settings.getWidth() / 4) / 2);
+                    int yCoor = (MAX_Y/2) - ((settings.getHeight() / 4) / 2);
+                    setPicture("Materials/+500.png", "Treasure", xCoor, yCoor);
+                    
+                    Timer task = new Timer(1, "removePicture");
+                    tasks.add(task);
+
+                }
+
+            }
         }
     }
 
@@ -143,12 +272,109 @@ public class Main extends SimpleApplication implements ActionListener{
         inputManager.addMapping("Up", new KeyTrigger(KeyInput.KEY_W));
         inputManager.addMapping("Down", new KeyTrigger(KeyInput.KEY_S));
         inputManager.addMapping("Jump", new KeyTrigger(KeyInput.KEY_SPACE));
+        inputManager.addMapping("Interact", new KeyTrigger(KeyInput.KEY_E));
+        inputManager.addMapping("shoot", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
+        inputManager.addMapping("reload", new KeyTrigger(KeyInput.KEY_R));
         inputManager.addListener(this, "Left");
         inputManager.addListener(this, "Right");
         inputManager.addListener(this, "Up");
         inputManager.addListener(this, "Down");
         inputManager.addListener(this, "Jump");
+        inputManager.addListener(this, "Interact");
+        inputManager.addListener(actionListener, "shoot");
+        inputManager.addListener(actionListener, "reload");
     }
+    
+        /**
+     * Every time the shoot action is triggered, a new cannon ball is produced.
+     * The ball is set up to fly from the camera position in the camera direction.
+     */
+    private ActionListener actionListener = new ActionListener() {
+
+        public void onAction(String name, boolean isPressed, float tpf) {
+            if (name.equals("shoot")  && !isPressed) {
+                //Checks to see if you have anymore ammo
+                //if you do not then it shows you need to reload your gun
+                if(ammo==0 && !reload){
+                    reload = true;
+                   Picture pic = new Picture("HUD Picture");
+                   pic.setImage(assetManager, "Textures/reload-button.png", true);
+                   pic.setWidth(settings.getWidth()/4);
+                   pic.setHeight(settings.getHeight()/4);
+                   pic.setPosition(960, 0);
+                   pic.setName("Reload");
+                   guiNode.attachChild(pic);
+                }
+                //If you have ammo then shoot! Depreciates the value by 1 everytime
+               else if(!reload && ammo > 0){
+                   //   Reset results list.
+                    CollisionResults results = new CollisionResults();
+                    //  Aim the ray from cam loc to cam direction.
+                    Ray ray = new Ray(cam.getLocation(), cam.getDirection());
+                    //  Collect intersections between Ray and Shootables in results list.
+                    rootNode.collideWith(ray, results);
+                    for (int i = 0; i < results.size(); i++) {
+                    // For each hit, we know distance, impact point, name of geometry.
+                    String hit = results.getCollision(i).getGeometry().getName();
+                   // System.out.println("* Collision #" + i);
+                    System.out.println("  You shot " + hit );
+                    
+                    if(hit.toString().equalsIgnoreCase("Brick"))
+                    {
+                        
+                    }
+                    
+                     }
+                    //  Use the results (we mark the hit object)
+                  /*if (results.size() > 0) {
+                    //  The closest collision point is what was truly hit:
+                    CollisionResult closest = results.getClosestCollision();
+                    //  Let's interact - we mark the hit with a red dot.
+                    Geometry blood = new Geometry();
+                    blood = new Geometry("BOOM!", sphere);
+                    Material mark_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+                    mark_mat.setColor("Color", ColorRGBA.Red);
+                    blood.setMaterial(mark_mat);
+                    blood.setLocalTranslation(closest.getContactPoint());
+                    blood.setName("blood");
+                    rootNode.attachChild(blood);
+                  } else {
+                    //  No hits? Then remove the red mark.
+                    worker.schedule(removeBlood, 3, TimeUnit.SECONDS); 
+                  }*/
+                    makeBullet();
+                    ammo = ammo - 1;
+                }
+                
+                
+            }
+            else if (name.equals("reload")  && !isPressed) {
+//                if(reload){
+//                    tasks.add(new Timer(2f, "loadAmmo"));
+////                    worker.schedule(loadAmmo, 2, TimeUnit.SECONDS);
+//                }
+//                else{
+////                   worker.schedule(loadAmmo, 2, TimeUnit.SECONDS);
+//                    tasks.add(new Timer(2f, "loadAmmo"));
+//                }
+                                if(reload){
+                    worker.schedule(loadAmmo, 2, TimeUnit.SECONDS);
+                    guiNode.detachChildNamed("Reload");
+                }
+                else{
+                   worker.schedule(loadAmmo, 2, TimeUnit.SECONDS);
+                }
+            }
+        }
+    };
+    
+        Runnable loadAmmo = new Runnable() {
+       public void run() {
+         ammo = 12;
+         reload = false;
+       }
+     };
+
 
     private void setUpLight() {
         
@@ -164,4 +390,197 @@ public class Main extends SimpleApplication implements ActionListener{
         rootNode.addLight(dl);
     }
 
+    /**
+     * load up treasure chests
+     */
+    private void loadTreasureChests() {
+        treasureChests = new Node("Treasure");
+        rootNode.attachChild(treasureChests);
+        treasureChests.attachChild(makeCube("Box1", 0f, 0f, 0f));
+    }
+    
+    /*
+     * A Cube object for target practice
+     */
+    protected Geometry makeCube(String name, float x, float y, float z) {
+        Box box = new Box(new Vector3f(x,y,z), 3, 3, 2);
+        Geometry cube = new Geometry(name, box);
+        Material mat1 = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        Texture texture = assetManager.loadTexture("Textures/panels.jpg");
+        mat1.setTexture("ColorMap", texture);
+        cube.setMaterial(mat1);
+        return cube;
+    }
+    
+    private void setPicture(String pictureLocation, String name, float xPosition, float yPosition) {
+        Picture pic = new Picture("HUD Picture");
+        pic.setImage(assetManager, pictureLocation, true);
+        pic.setWidth(settings.getWidth()/4);
+        System.out.println(settings.getWidth()/4 + " + height: " + settings.getHeight()/4);
+        pic.setHeight(settings.getHeight()/4);
+        pic.setPosition(xPosition, yPosition);
+        pic.setName(name);
+        guiNode.attachChild(pic);
+    }
+    
+    private void removePicture(String name) {
+        guiNode.detachChildNamed(name);
+    }
+    
+    private void loadAmmo() { 
+       ammo = 12;
+       reload = false;
+    }
+
+    private void setupPhysics() {
+                // Set up a Physics game
+        bulletAppState = new BulletAppState();
+        stateManager.attach(bulletAppState);
+                
+        // Configure cam to look at scene
+        cam.setLocation(new Vector3f(0, 4f, 6f));
+        cam.lookAt(new Vector3f(2, 2, 0), Vector3f.UNIT_Y);
+        // Initialze the scene, materials, and physics space
+        initMaterials();
+//        initWall();
+//        initFloor();
+        initCrossHairs();
+    }
+    
+    /**
+     * A plus sign used as crosshairs to help the player with aiming
+     */
+    private void initCrossHairs() {
+        guiNode.detachAllChildren();
+        Picture crh = new Picture("HUD Picture");
+        crh.setImage(assetManager, "Textures/crosshairs.png", true);
+        crh.setWidth(280);
+        crh.setHeight(280);
+        crh.setPosition(500,200);
+        crh.setName("crosshair");
+        guiNode.attachChild(crh);
+    }
+
+    /**
+     * Make a solid floor and add it to the scene
+     */
+    private void initFloor() {
+        Geometry floorGeo = new Geometry("Floor", floor);
+        floorGeo.setMaterial(floorMat);
+        floorGeo.setLocalTranslation(0, -0.1f, 0);
+        this.rootNode.attachChild(floorGeo);
+        
+        // Make the floor physical with mass 0.0f
+        floorPhy = new RigidBodyControl(0.0f);
+        floorGeo.addControl(floorPhy);
+        bulletAppState.getPhysicsSpace().add(floorPhy);
+    }
+
+    /**
+     * Initialize the materials used in this scene.
+     */
+    private void initMaterials() {
+       wallMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+       TextureKey key = new TextureKey("Textures/Terrain/BrickWall/BrickWall.jpg");
+       key.setGenerateMips(true);
+       Texture tex = assetManager.loadTexture(key);
+       wallMat.setTexture("ColorMap", tex);
+       
+       stoneMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+       TextureKey key2 = new TextureKey("Textures/bulletTexture.png");
+       key2.setGenerateMips(true);
+       Texture tex2 = assetManager.loadTexture(key2);
+       stoneMat.setTexture("ColorMap", tex2);
+       
+       floorMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+       TextureKey key3 = new TextureKey("Textures/bulletTexture.png");
+       key3.setGenerateMips(true);
+       Texture tex3 = assetManager.loadTexture(key3);
+       tex3.setWrap(WrapMode.Repeat);
+       floorMat.setTexture("ColorMap", tex3);
+    }
+
+    /**
+     * This loop builds a wall out of individual bricks
+     */
+    private void initWall() {
+        float startpt = brickLength / 4;
+        float height = 0;
+        for (int j = 0; j < 15; j++) {
+            for (int i = 0; i < 6; i++) {
+                Vector3f vt =
+                        new Vector3f( i*brickLength * 2 + startpt,
+                        brickHeight + height, 0);
+                makeBrick(vt);
+            }
+            startpt = -startpt;
+            height += 2* brickHeight;
+        }
+    }
+    
+    /**
+     * This method creates one individual physical brick
+     * 
+     * @param loc   The vector of the bricks location
+     */
+    private void makeBrick(Vector3f loc) {
+        // Create a brick geometry and attach to the scene graph.
+        Geometry brickGeo = new Geometry("brick", box);
+        brickGeo.setMaterial(wallMat);
+        rootNode.attachChild(brickGeo);
+        
+        // Position the brick geometry
+        brickGeo.setLocalTranslation(loc);
+        
+        // Make brick physical with a mass > 0.0f.
+        brickPhy = new RigidBodyControl(1f);
+                
+        // Add physical brick to physics space.
+        brickGeo.addControl(brickPhy);
+        bulletAppState.getPhysicsSpace().add(brickPhy);
+    }
+    
+     /**
+     * This method creates one individual physical cannon ball.
+     * By default, the ball is accelerated and flies from the
+     * camera position in the camera direction.
+     */
+    private void makeBullet() {
+        // Create a cannon ball geometry and attach to the scene graph
+        Geometry ballGeo = new Geometry("bullet", sphere);
+        ballGeo.setMaterial(stoneMat);
+        rootNode.attachChild(ballGeo);
+        
+        // Position the cannon ball
+        ballGeo.setLocalTranslation(cam.getLocation());
+        
+        // Make th ball physical with a mass > 0.0f
+        ballPhy = new RigidBodyControl(100f);
+        
+         
+        // Add physical ball to physics space
+        ballGeo.addControl(ballPhy);
+        bulletAppState.getPhysicsSpace().add(ballPhy);
+        ballPhy.setCcdMotionThreshold(25f);
+        // Accelerate the physical ball to shoot it
+        ballPhy.setLinearVelocity(cam.getDirection().mult(10f));
+        ballPhy.setGravity(Vector3f.ZERO);
+       
+        
+        
+    }
+    
+    
+    private class Timer {
+        public float timeElapsed;
+        public float delayTime;
+        public String task;
+        
+        public Timer(float delayTime, String task) {
+            this.timeElapsed = 0;
+            this.delayTime = delayTime;
+            this.task = task;
+        }
+    }
+    
 }

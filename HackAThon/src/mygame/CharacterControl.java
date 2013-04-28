@@ -228,7 +228,6 @@ public class CharacterControl extends PhysicsCharacter implements PhysicsControl
     public void jump() {
 //        character = new KinematicSwimController(gObject, (ConvexShape) collisionShape.getCShape(), stepHeight);
         character.jump();
-        System.out.println(character.getClass());
     }
     
     @Override
