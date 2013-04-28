@@ -5,7 +5,7 @@ import com.jme3.asset.plugins.ZipLocator;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.collision.shapes.CapsuleCollisionShape;
 import com.jme3.bullet.collision.shapes.CollisionShape;
-import com.jme3.bullet.control.CharacterControl;
+//import com.jme3.bullet.control.CharacterControl;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.bullet.util.CollisionShapeFactory;
 import com.jme3.input.KeyInput;
@@ -76,8 +76,8 @@ public class Main extends SimpleApplication implements ActionListener{
          */
         CapsuleCollisionShape capsuleShape = new CapsuleCollisionShape(1.5f, 6f, 1);
         player = new CharacterControl(capsuleShape, 0.05f);
-        player.setJumpSpeed(50);
-        player.setFallSpeed(1);
+        player.setJumpSpeed(20);
+        player.setFallSpeed(5);
         player.setGravity(30);
         player.setPhysicsLocation(new Vector3f(0, 10, 0));
         
