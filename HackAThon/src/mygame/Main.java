@@ -92,6 +92,7 @@ public class Main extends SimpleApplication implements ActionListener{
     
     private float timeElapsed;
     private int playerHealth;
+    private ArrayList<Geometry> deadFish;
     
     
         static {
@@ -129,6 +130,7 @@ public class Main extends SimpleApplication implements ActionListener{
         reload = false;
         
         tasks = new ArrayList<Timer>();
+        deadFish = new ArrayList<Geometry>();
         
         /*
          * Set up physics
@@ -182,11 +184,7 @@ public class Main extends SimpleApplication implements ActionListener{
         bulletAppState.getPhysicsSpace().add(player);
         
         setupPhysics();
-        
-//        shootables.attachChild(makeCube("a Dragon", -2f, 0f, 1f));
-//	shootables.attachChild(makeCube("a tin can", 1f, -2f, 0f));
-//	shootables.attachChild(makeCube("the Sheriff", 0f, 1f, -2f));
-//	shootables.attachChild(makeCube("the Deputy", 1f, 0f, -4f));
+
         
         for(int i=0; i<enemyNum; i++)
 	{
@@ -206,8 +204,7 @@ public class Main extends SimpleApplication implements ActionListener{
             int x = FastMath.nextRandomInt(-200, 200);
             int z = FastMath.nextRandomInt(-200, 200);
             geom[j].move(x, 5, z);
-            shootables.attachChild(geom[j]); 
-                
+            shootables.attachChild(geom[j]);    
         }
         
     }
@@ -239,27 +236,55 @@ public class Main extends SimpleApplication implements ActionListener{
         Vector3f camDir = cam.getDirection().clone().multLocal(0.6f);
         Vector3f camLeft = cam.getLeft().clone().multLocal(0.4f);
         walkDirection.set(0, 0, 0);
-        if (left) {
+        if (left && !isTreasureChest()) {
             walkDirection.addLocal(camLeft);
         }
-        if (right) {
+        if (right && !isTreasureChest()) {
             walkDirection.addLocal(camLeft.negate());
         }
-        if (up) {
+        if (up && !isTreasureChest()) {
             walkDirection.addLocal(camDir);
         }
-        if (down) {
+        if (down && !isTreasureChest()) {
             walkDirection.addLocal(camDir.negate());
         }
         player.setWalkDirection(walkDirection);
         cam.setLocation(player.getPhysicsLocation());
         
         for(int v=0; v<enemyNum; v++) {
-            direction[v] = player.getPhysicsLocation().subtract(geom[v].getLocalTranslation()).normalize().mult(5);
+//            if (geom[v] == null && geom[v].getParent().equals(shootables)) {
+//                System.err.print("Shootable\n\n\n");
+                direction[v] = player.getPhysicsLocation().subtract(geom[v].getLocalTranslation()).normalize().mult(5);
+                geom[v].move(direction[v].mult(tpf));
+//            } else if (geom[v] != null) {
+//                System.out.println(geom[v].getParent().toString()+"\n\n");
+//                direction[v] = new Vector3f(0,1000,0).subtract(geom[v].getLocalTranslation()).normalize().mult(5);
+//            } 
         }
-        for(int k=0; k<enemyNum; k++) {
-            geom[k].move(direction[k].mult(tpf));
+        
+        for (Geometry fish: deadFish) {
+            Vector3f vec = new Vector3f(0,1000,0).subtract(fish.getLocalTranslation()).normalize().mult(5);
+            fish.move(vec.mult(tpf));
         }
+    }
+    
+    private boolean isTreasureChest() {
+//        System.out.println();
+        for (Spatial chest: treasureChests.getChildren()) {
+
+            if ( !isClose(chest.getLocalTranslation())) {
+//                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    private boolean isClose(Vector3f loc) {
+        
+        return (int) (loc.x) == (int)(cam.getLocation().getX()) &&
+                (int) (loc.y) == (int) (cam.getLocation().getY()) &&
+                (int)(loc.z) == (int)(cam.getLocation().getZ());
     }
     
     /**
@@ -372,12 +397,12 @@ public class Main extends SimpleApplication implements ActionListener{
 
                     // 5. Use the results (we mark the hit object)
                     if (results.size() > 0) {
-                        System.out.println(results.size() + "\n\n");
                         // The closest collision point is what was truly hit:
                         CollisionResult closest = results.getClosestCollision();
                         Geometry geo = closest.getGeometry();
                         if (geo.getParent().equals(shootables)) {
-                            geo.removeFromParent();
+//                            geo.removeFromParent();
+                            deadFish.add(geo);
                         }
                         
 
@@ -393,23 +418,7 @@ public class Main extends SimpleApplication implements ActionListener{
                     }
                     
                      }
-                    //  Use the results (we mark the hit object)
-                  /*if (results.size() > 0) {
-                    //  The closest collision point is what was truly hit:
-                    CollisionResult closest = results.getClosestCollision();
-                    //  Let's interact - we mark the hit with a red dot.
-                    Geometry blood = new Geometry();
-                    blood = new Geometry("BOOM!", sphere);
-                    Material mark_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-                    mark_mat.setColor("Color", ColorRGBA.Red);
-                    blood.setMaterial(mark_mat);
-                    blood.setLocalTranslation(closest.getContactPoint());
-                    blood.setName("blood");
-                    rootNode.attachChild(blood);
-                  } else {
-                    //  No hits? Then remove the red mark.
-                    worker.schedule(removeBlood, 3, TimeUnit.SECONDS); 
-                  }*/
+
                     makeBullet();
                     ammo = ammo - 1;
 //                    guiNode.detachChildNamed("hud");
@@ -482,7 +491,7 @@ public class Main extends SimpleApplication implements ActionListener{
     private void loadTreasureChests() {
         treasureChests = new Node("Treasure");
         rootNode.attachChild(treasureChests);
-        treasureChests.attachChild(makeTreasureChest("Box1", 0f, 0f, 0f));
+        treasureChests.attachChild(makeTreasureChest("Box1", 20f, 0f, 0f));
     }
     
     /** A cube object for target practice */
@@ -501,6 +510,7 @@ public class Main extends SimpleApplication implements ActionListener{
      */
     protected Geometry makeTreasureChest(String name, float x, float y, float z) {
         Box box = new Box(new Vector3f(x,y,z), 3, 3, 2);
+        
         Geometry cube = new Geometry(name, box);
         Material mat1 = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         Texture texture = assetManager.loadTexture("Textures/panels.jpg");
