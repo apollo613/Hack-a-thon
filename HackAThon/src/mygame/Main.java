@@ -83,7 +83,7 @@ public class Main extends SimpleApplication implements ActionListener{
     private static final int MAX_X = 1280;
     private static final int MAX_Y = 720;
     
-    private int enemyNum = 1000;
+    private int enemyNum = 7000;
     private Vector3f[] direction = new Vector3f[enemyNum];
     private Geometry[] geom = new Geometry[enemyNum];
     
@@ -248,18 +248,10 @@ public class Main extends SimpleApplication implements ActionListener{
 
   	for(int j=0; j<enemyNum; j++)
         {
-        	if (enemy.getName().equals("EvilFish"))
-        	{
-            		int x = FastMath.nextRandomInt(-700, 700);
-            		int y = FastMath.nextRandomInt(0, 800);
-            		int z = FastMath.nextRandomInt(-700, 700);
-            		aliveEnemies.get(j).move(x, y, z);
-            		shootables.attachChild(aliveEnemies.get(j));
-        	}
-        	else{
-        		int x = FastMath.nextRandomInt(-300, 300);
-            		int y = FastMath.nextRandomInt(0, 200);
-            		int z = FastMath.nextRandomInt(-300, 300);
+        
+            		int x = FastMath.nextRandomInt(-600, 600);
+            		int y = FastMath.nextRandomInt(0, 700);
+            		int z = FastMath.nextRandomInt(-600, 600);
             		aliveEnemies.get(j).move(x, y, z);
             		shootables.attachChild(aliveEnemies.get(j));
         	}
