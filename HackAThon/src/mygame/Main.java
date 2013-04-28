@@ -1,6 +1,7 @@
 package mygame;
 
 import com.jme3.app.SimpleApplication;
+import com.jme3.system.AppSettings;
 import com.jme3.asset.TextureKey;
 import com.jme3.asset.plugins.ZipLocator;
 import com.jme3.audio.AudioNode;
@@ -32,6 +33,7 @@ import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Sphere;
 import com.jme3.scene.shape.Sphere.TextureMode;
+import com.jme3.system.AppSettings;
 import com.jme3.texture.Texture;
 import com.jme3.texture.Texture.WrapMode;
 import com.jme3.ui.Picture;
@@ -134,7 +136,11 @@ public class Main extends SimpleApplication implements ActionListener{
     
     
     public static void main(String[] args) {
+
         Main app = new Main();
+        AppSettings appSettings = new AppSettings(true);
+        appSettings.setSettingsDialogImage("Splash/StartScreen.png");
+        app.setSettings(appSettings);
         app.start();
     }
 
@@ -649,6 +655,11 @@ public class Main extends SimpleApplication implements ActionListener{
         treasureChests.attachChild(makeTreasureChest("Box1", 20f, 0f, 0f));
         treasureChests.attachChild(makeTreasureChest("Box2", 700f, 2f, 0f));
         treasureChests.attachChild(makeTreasureChest("Box3", 40f, 2f, 412f));
+        
+        for (int i = 0; i < 5; i++) {
+              treasureChests.attachChild(makeTreasureChest("Box" + (i+4), FastMath.nextRandomInt(-1000, 1000), 0f, FastMath.nextRandomInt(-1000, 1000)));
+        }
+        
     }
     
     /** A cube object for target practice */
@@ -787,7 +798,7 @@ public class Main extends SimpleApplication implements ActionListener{
     rootNode.attachChild(audio_gun);
  
     /* nature sound - keeps playing in a loop. */
-   audio_water = new AudioNode(assetManager, "Sounds/Effects/River.ogg", false);
+   audio_water = new AudioNode(assetManager, "Sounds/Effects/Jaws.wav", false);
     audio_water.setLooping(true);  // activate continuous playing
     audio_water.setPositional(true);
     audio_water.setLocalTranslation(Vector3f.ZERO.clone());
