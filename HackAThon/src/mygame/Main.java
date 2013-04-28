@@ -248,11 +248,23 @@ public class Main extends SimpleApplication implements ActionListener{
 
   	for(int j=0; j<enemyNum; j++)
         {
-            int x = FastMath.nextRandomInt(-500, 500);
-            int y = FastMath.nextRandomInt(0, 200);
-            int z = FastMath.nextRandomInt(-500, 500);
-            aliveEnemies.get(j).move(x, y, z);
-            shootables.attachChild(aliveEnemies.get(j));
+        	if (enemy.getName().equals("EvilFish"))
+        	{
+            		int x = FastMath.nextRandomInt(-700, 700);
+            		int y = FastMath.nextRandomInt(0, 800);
+            		int z = FastMath.nextRandomInt(-700, 700);
+            		aliveEnemies.get(j).move(x, y, z);
+            		shootables.attachChild(aliveEnemies.get(j));
+        	}
+        	else{
+        		int x = FastMath.nextRandomInt(-300, 300);
+            		int y = FastMath.nextRandomInt(0, 200);
+            		int z = FastMath.nextRandomInt(-300, 300);
+            		aliveEnemies.get(j).move(x, y, z);
+            		shootables.attachChild(aliveEnemies.get(j));
+        	}
+            		
+            		
             
             
             
