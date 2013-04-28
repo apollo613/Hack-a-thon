@@ -21,6 +21,7 @@ import com.jme3.light.AmbientLight;
 import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.FastMath;
 import com.jme3.math.Ray;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
@@ -32,7 +33,6 @@ import com.jme3.scene.shape.Sphere;
 import com.jme3.texture.Texture;
 import com.jme3.texture.Texture.WrapMode;
 import com.jme3.ui.Picture;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -46,6 +46,7 @@ public class Main extends SimpleApplication implements ActionListener{
     
 
     private Node treasureChests;
+    private Node shootables;
     private Spatial sceneModel;
     private BulletAppState bulletAppState;
     private RigidBodyControl landscape;
@@ -80,18 +81,23 @@ public class Main extends SimpleApplication implements ActionListener{
     private static final int MAX_X = 1280;
     private static final int MAX_Y = 720;
     
+    private int enemyNum = 200;
+    private Vector3f[] direction = new Vector3f[enemyNum];
+    private Geometry[] geom = new Geometry[enemyNum];
+    
         //Make a timer for the bullet shots
     private int ammo;
     private boolean reload;
     
-    private float timeElapsed = 0;
+    private float timeElapsed;
+    private int playerHealth;
     
     
         static {
         /*
          * Initialize the cannon ball geometry
          */
-        sphere = new Sphere(32, 32, 0.4f, true, false);
+        sphere = new Sphere(16, 16, 0.4f, true, false);
         sphere.setTextureMode(Sphere.TextureMode.Projected);
         /*
          * Initialize the brick geometry
@@ -114,6 +120,11 @@ public class Main extends SimpleApplication implements ActionListener{
 
     @Override
     public void simpleInitApp() {
+        
+        timeElapsed = 0;
+        playerHealth = 10;
+        ammo = 12;
+        reload = false;
         
         tasks = new ArrayList<Timer>();
         
@@ -141,7 +152,8 @@ public class Main extends SimpleApplication implements ActionListener{
         CollisionShape sceneShape = CollisionShapeFactory.createMeshShape( (Node) sceneModel);
         landscape = new RigidBodyControl(sceneShape, 0);
         sceneModel.addControl(landscape);
-        
+        shootables = new Node("shootables");
+        rootNode.attachChild(shootables);
         loadTreasureChests();
 
         
@@ -169,8 +181,31 @@ public class Main extends SimpleApplication implements ActionListener{
         
         setupPhysics();
         
-        ammo = 12;
-        reload = false;
+//        shootables.attachChild(makeCube("a Dragon", -2f, 0f, 1f));
+//	shootables.attachChild(makeCube("a tin can", 1f, -2f, 0f));
+//	shootables.attachChild(makeCube("the Sheriff", 0f, 1f, -2f));
+//	shootables.attachChild(makeCube("the Deputy", 1f, 0f, -4f));
+        
+        for(int i=0; i<enemyNum; i++)
+	{
+            
+        	Box b = new Box(Vector3f.ZERO, 1, 1, 1); // create cube shape at the origin
+        	geom[i] = new Geometry("Box", b);  // create cube geometry from the shape
+        	Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
+        	mat.setColor("Color", ColorRGBA.Magenta);   // set color of material to blue
+        	geom[i].setMaterial(mat);                   // set the cube's material
+        
+        }
+
+  	for(int j=0; j<enemyNum; j++)
+        {
+            int x = FastMath.nextRandomInt(-200, 200);
+            int z = FastMath.nextRandomInt(-200, 200);
+            geom[j].move(x, 5, z);
+            shootables.attachChild(geom[j]); 
+                
+        }
+        
     }
 
     /**
@@ -191,8 +226,6 @@ public class Main extends SimpleApplication implements ActionListener{
                 // Call method
                 if (t.task.equals("removePicture")) {
                     removePicture("Treasure");
-                } else if (t.task.equals("loadAmmo")) {
-                    guiNode.detachChildNamed("Reload");
                 }
                 tasks.remove(t);
             }
@@ -216,6 +249,13 @@ public class Main extends SimpleApplication implements ActionListener{
         }
         player.setWalkDirection(walkDirection);
         cam.setLocation(player.getPhysicsLocation());
+        
+        for(int v=0; v<enemyNum; v++) {
+            direction[v] = player.getPhysicsLocation().subtract(geom[v].getLocalTranslation()).normalize().mult(5);
+        }
+        for(int k=0; k<enemyNum; k++) {
+            geom[k].move(direction[k].mult(tpf));
+        }
     }
     
     /**
@@ -246,10 +286,9 @@ public class Main extends SimpleApplication implements ActionListener{
             if (results.size() > 0) {
                 // The closest collision point is what was truly hit:
                 CollisionResult closest = results.getClosestCollision();
-
+                Geometry geo = closest.getGeometry();
                 if ( closest.getDistance() < 9.0f ) {                    
-                    
-                    Geometry geo = closest.getGeometry();
+
                     geo.getMaterial().setColor("Color", ColorRGBA.Black);
                     geo.removeFromParent();
                     rootNode.attachChild(geo);
@@ -304,6 +343,26 @@ public class Main extends SimpleApplication implements ActionListener{
                    pic.setPosition(960, 0);
                    pic.setName("Reload");
                    guiNode.attachChild(pic);
+                   
+                    // 1. Reset resulrs list.
+                CollisionResults results = new CollisionResults();
+                 // 2. Aim the ray from loc to cam direction.
+                 Ray ray = new Ray(cam.getLocation(), cam.getDirection());
+                 // 3. Collect intersections betwen Ray and Shootables in results list. 
+                  shootables.collideWith(ray, results);
+
+                 // 5. Use the results (we mark the hit object)
+                  if (results.size() > 0) {
+                      System.out.println(results.size() + "\n\n");
+                // The closest collision point is what was truly hit:
+                     CollisionResult closest = results.getClosestCollision();
+                     Geometry geo = closest.getGeometry();
+                   geo.removeFromParent();
+
+                 }
+                
+                
+                   
                 }
                 //If you have ammo then shoot! Depreciates the value by 1 everytime
                else if(!reload && ammo > 0){
@@ -396,13 +455,23 @@ public class Main extends SimpleApplication implements ActionListener{
     private void loadTreasureChests() {
         treasureChests = new Node("Treasure");
         rootNode.attachChild(treasureChests);
-        treasureChests.attachChild(makeCube("Box1", 0f, 0f, 0f));
+        treasureChests.attachChild(makeTreasureChest("Box1", 0f, 0f, 0f));
     }
+    
+    /** A cube object for target practice */
+	  protected Geometry makeCube(String name, float x, float y, float z) {
+	    Box box = new Box(new Vector3f(x, y, z), 1, 1, 1);
+	    Geometry cube = new Geometry(name, box);
+	    Material mat1 = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+	    mat1.setColor("Color", ColorRGBA.randomColor());
+	    cube.setMaterial(mat1);
+	    return cube;
+	  }
     
     /*
      * A Cube object for target practice
      */
-    protected Geometry makeCube(String name, float x, float y, float z) {
+    protected Geometry makeTreasureChest(String name, float x, float y, float z) {
         Box box = new Box(new Vector3f(x,y,z), 3, 3, 2);
         Geometry cube = new Geometry(name, box);
         Material mat1 = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
