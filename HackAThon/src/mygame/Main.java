@@ -112,7 +112,7 @@ public class Main extends SimpleApplication implements ActionListener{
         /*
          * Initialize the floor geometry
          */
-        floor = new Box(Vector3f.ZERO, 10f, 0.1f, 5f);
+        floor = new Box(Vector3f.ZERO, 1000f, 2.0f, 500f);
         floor.scaleTextureCoordinates(new Vector2f(3, 6));
     }
 
@@ -137,7 +137,7 @@ public class Main extends SimpleApplication implements ActionListener{
         
         
         // add a fish...
-//        fish = assetManager.loadModel("Models/fish1.obj");
+        fish = assetManager.loadModel("Models/fish1.obj");
 //        Material mat_default = new Material(
 //                assetManager, "Common/MatDefs/Misc/ShowNormals.j3md");
 ////        mat_default.setColor("Color", ColorRGBA.Blue);
@@ -150,6 +150,9 @@ public class Main extends SimpleApplication implements ActionListener{
         bulletAppState = new BulletAppState();
         stateManager.attach(bulletAppState);
         
+        initMaterials();
+        initFloor();
+        
         // We re-use the flyby camera for rotation, while positioning is handled by pyhsics
         viewPort.setBackgroundColor(new ColorRGBA(0.7f, 0.8f, 1f, 1f));
         flyCam.setMoveSpeed(100);
@@ -157,17 +160,17 @@ public class Main extends SimpleApplication implements ActionListener{
         setUpLight();
         
         // We load the scen from the zip file and adjust its size.
-        assetManager.registerLocator("town.zip", ZipLocator.class);
-        sceneModel = assetManager.loadModel("main.scene");
-        sceneModel.setLocalScale(2f);
+//        assetManager.registerLocator("town.zip", ZipLocator.class);
+//        sceneModel = assetManager.loadModel("main.scene");
+//        sceneModel.setLocalScale(2f);
         
         /*
          * We set up collision detection for the scene by creating a
          * compound collision shape and a static RigidBodyControl with mass zero.
          */
-        CollisionShape sceneShape = CollisionShapeFactory.createMeshShape( (Node) sceneModel);
-        landscape = new RigidBodyControl(sceneShape, 0);
-        sceneModel.addControl(landscape);
+//        CollisionShape sceneShape = CollisionShapeFactory.createMeshShape( (Node) sceneModel);
+//        landscape = new RigidBodyControl(sceneShape, 0);
+//        sceneModel.addControl(landscape);
         shootables = new Node("shootables");
         rootNode.attachChild(shootables);
         loadTreasureChests();
@@ -191,63 +194,45 @@ public class Main extends SimpleApplication implements ActionListener{
          * We attach the scene and the player to the rootNode and the physics
          * space, to make them appear in the game world.
          */
-        rootNode.attachChild(sceneModel);
-        bulletAppState.getPhysicsSpace().add(landscape);
         bulletAppState.getPhysicsSpace().add(player);
         
         setupPhysics();
 
         
-//        for(int i=0; i<enemyNum; i++)
-//	{
-////            if (i%3 == 0 && i%5 == 0) {
-////                Box b = new Box(Vector3f.ZERO, 1, 1, 1); // create cube shape at the origin
-////        	geom[i] = new Geometry("Box", b);  // create cube geometry from the shape
-////        	Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
-////                Texture texture = assetManager.loadTexture("Textures/zombie_little_mermaid.jpg");
-////                mat.setTexture("ColorMap", texture);
-////                geom[i].setMaterial(mat);
-////            } else if (i % 5 == 0) {
-////                Box b = new Box(Vector3f.ZERO, 1, 1, 1); // create cube shape at the origin
-////        	geom[i] = new Geometry("Box", b);  // create cube geometry from the shape
-////        	Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
-////                Texture texture = assetManager.loadTexture("Textures/zombie.jpg");
-////                mat.setTexture("ColorMap", texture);
-////
-////        	geom[i].setMaterial(mat);                   // set the cube's material
-////            } else {
-////                Box b = new Box(Vector3f.ZERO, 1, 1, 1); // create cube shape at the origin
-////        	geom[i] = new Geometry("Box", b);  // create cube geometry from the shape
-////        	Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
-////                Texture texture = assetManager.loadTexture("Textures/fishPic.jpg");
-////                mat.setTexture("ColorMap", texture);
-////
-////        	geom[i].setMaterial(mat);                   // set the cube's material
-////            }
-//            
-//              Spatial fish = assetManager.loadModel("Models/fish1.obj");
-////        Material mat = new Material(
-////                assetManager, "Common/MatDefs/Misc/ShowNormals.j3md");
-//        
-//        Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
-//        Texture texture = assetManager.loadTexture("Textures/PTERO_01.jpg");
-//        mat.setTexture("ColorMap", texture);
-//        fish.setMaterial(mat);
-////        mat_default.setColor("Color", ColorRGBA.Blue);
-////        fish.setMaterial(mat);
-//        fish.scale(5f);
-//        	
-//                aliveEnemies.add(fish);
-//        
-//        }
-//
-//  	for(int j=0; j<enemyNum; j++)
-//        {
-//            int x = FastMath.nextRandomInt(-200, 200);
-//            int z = FastMath.nextRandomInt(-200, 200);
-//            aliveEnemies.get(j).move(x, 5, z);
-//            shootables.attachChild(aliveEnemies.get(j));    
-//        }
+        for(int i=0; i<enemyNum; i++)
+	{
+            
+            if ( i % 4 == 0) {
+                Spatial fish = assetManager.loadModel("Models/seahorse.obj");
+                Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
+                Texture texture = assetManager.loadTexture("Textures/SEHOBODT.JPG");
+                mat.setTexture("ColorMap", texture);
+                fish.setMaterial(mat);
+                fish.scale(1f);	
+                fish.rotate(0, 55f, 0);
+                aliveEnemies.add(fish);
+            } else {
+                Spatial fish = assetManager.loadModel("Models/fish1.obj");
+                Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
+                Texture texture = assetManager.loadTexture("Textures/PTERO_01.jpg");
+                mat.setTexture("ColorMap", texture);
+                fish.setMaterial(mat);
+                fish.scale(2f);	
+                aliveEnemies.add(fish);
+            }
+            
+
+        
+        }
+
+  	for(int j=0; j<enemyNum; j++)
+        {
+            int x = FastMath.nextRandomInt(-500, 500);
+            int y = FastMath.nextRandomInt(0, 200);
+            int z = FastMath.nextRandomInt(-500, 500);
+            aliveEnemies.get(j).move(x, y, z);
+            shootables.attachChild(aliveEnemies.get(j));    
+        }
         
     }
 
@@ -292,18 +277,17 @@ public class Main extends SimpleApplication implements ActionListener{
         }
         player.setWalkDirection(walkDirection);
         cam.setLocation(player.getPhysicsLocation());
-//        
-//        for( Spatial enemy: aliveEnemies) {
-//            Vector3f vec = player.getPhysicsLocation().subtract(enemy.getLocalTranslation()).normalize().mult(5);
-//                enemy.move(vec.mult(tpf));
-//        }
-//        
-//        for (Spatial fish: deadFish) {
-//            Vector3f vec = new Vector3f(0,1000,0).subtract(fish.getLocalTranslation()).normalize().mult(5);
-//            fish.move(vec.mult(tpf/2));
-//        }
-//        Vector3f vec = new Vector3f(0,1000,0).subtract(fish.getLocalTranslation()).normalize().mult(5);
-//            fish.move(vec.mult(tpf/2));
+        
+        for( Spatial enemy: aliveEnemies) {
+            Vector3f vec = player.getPhysicsLocation().subtract(enemy.getLocalTranslation()).normalize().mult(5);
+                enemy.move(vec.mult(tpf));
+        }
+        
+        for (Spatial fish: deadFish) {
+            Vector3f vec = new Vector3f(0,1000,0).subtract(fish.getLocalTranslation()).normalize().mult(5);
+            fish.move(vec.mult(tpf/2));
+        }
+
     }
     
     private boolean isTreasureChest() {
@@ -441,7 +425,7 @@ public class Main extends SimpleApplication implements ActionListener{
 //                            geo.removeFromParent();
                             aliveEnemies.remove(geo);
                             Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
-                            Texture texture = assetManager.loadTexture("Textures/deadFish.jpg");
+                            Texture texture = assetManager.loadTexture("Materials/fish-skeleton.jpg");
                             mat.setTexture("ColorMap", texture);
                             geo.setMaterial(mat);
                             deadFish.add(geo);
@@ -500,7 +484,7 @@ public class Main extends SimpleApplication implements ActionListener{
 
     private void setUpLight() {
         
-        viewPort.setBackgroundColor(ColorRGBA.Blue);
+        viewPort.setBackgroundColor(new ColorRGBA(0, 0, 128, 1.0f));
         // We add light so we see the scene
         AmbientLight al = new AmbientLight();
         al.setColor(ColorRGBA.White.mult(1.3f));
@@ -519,6 +503,8 @@ public class Main extends SimpleApplication implements ActionListener{
         treasureChests = new Node("Treasure");
         rootNode.attachChild(treasureChests);
         treasureChests.attachChild(makeTreasureChest("Box1", 20f, 0f, 0f));
+        treasureChests.attachChild(makeTreasureChest("Box2", 700f, 2f, 0f));
+        treasureChests.attachChild(makeTreasureChest("Box3", 40f, 2f, 412f));
     }
     
     /** A cube object for target practice */
@@ -626,7 +612,7 @@ public class Main extends SimpleApplication implements ActionListener{
        stoneMat.setTexture("ColorMap", tex2);
        
        floorMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-       TextureKey key3 = new TextureKey("Textures/bulletTexture.png");
+       TextureKey key3 = new TextureKey("Environment/sand.jpg");
        key3.setGenerateMips(true);
        Texture tex3 = assetManager.loadTexture(key3);
        tex3.setWrap(WrapMode.Repeat);
