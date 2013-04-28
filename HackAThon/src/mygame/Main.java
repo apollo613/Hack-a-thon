@@ -92,6 +92,7 @@ public class Main extends SimpleApplication implements ActionListener{
     
     private float timeElapsed;
     private int playerHealth;
+    private ArrayList<Geometry> aliveEnemies;
     private ArrayList<Geometry> deadFish;
     
     
@@ -131,6 +132,7 @@ public class Main extends SimpleApplication implements ActionListener{
         
         tasks = new ArrayList<Timer>();
         deadFish = new ArrayList<Geometry>();
+        aliveEnemies = new ArrayList<Geometry>();
         
         /*
          * Set up physics
@@ -188,14 +190,33 @@ public class Main extends SimpleApplication implements ActionListener{
         
         for(int i=0; i<enemyNum; i++)
 	{
-            
-        	Box b = new Box(Vector3f.ZERO, 1, 1, 1); // create cube shape at the origin
+            if (i%3 == 0 && i%5 == 0) {
+                Box b = new Box(Vector3f.ZERO, 1, 1, 1); // create cube shape at the origin
+        	geom[i] = new Geometry("Box", b);  // create cube geometry from the shape
+        	Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
+                Texture texture = assetManager.loadTexture("Textures/zombie_little_mermaid.jpg");
+                mat.setTexture("ColorMap", texture);
+                geom[i].setMaterial(mat);
+            } else if (i % 5 == 0) {
+                Box b = new Box(Vector3f.ZERO, 1, 1, 1); // create cube shape at the origin
         	geom[i] = new Geometry("Box", b);  // create cube geometry from the shape
         	Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
                 Texture texture = assetManager.loadTexture("Textures/zombie.jpg");
                 mat.setTexture("ColorMap", texture);
 
         	geom[i].setMaterial(mat);                   // set the cube's material
+            } else {
+                Box b = new Box(Vector3f.ZERO, 1, 1, 1); // create cube shape at the origin
+        	geom[i] = new Geometry("Box", b);  // create cube geometry from the shape
+        	Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
+                Texture texture = assetManager.loadTexture("Textures/fishPic.jpg");
+                mat.setTexture("ColorMap", texture);
+
+        	geom[i].setMaterial(mat);                   // set the cube's material
+            }
+            
+        	
+                aliveEnemies.add(geom[i]);
         
         }
 
@@ -251,20 +272,14 @@ public class Main extends SimpleApplication implements ActionListener{
         player.setWalkDirection(walkDirection);
         cam.setLocation(player.getPhysicsLocation());
         
-        for(int v=0; v<enemyNum; v++) {
-//            if (geom[v] == null && geom[v].getParent().equals(shootables)) {
-//                System.err.print("Shootable\n\n\n");
-                direction[v] = player.getPhysicsLocation().subtract(geom[v].getLocalTranslation()).normalize().mult(5);
-                geom[v].move(direction[v].mult(tpf));
-//            } else if (geom[v] != null) {
-//                System.out.println(geom[v].getParent().toString()+"\n\n");
-//                direction[v] = new Vector3f(0,1000,0).subtract(geom[v].getLocalTranslation()).normalize().mult(5);
-//            } 
+        for( Geometry enemy: aliveEnemies) {
+            Vector3f vec = player.getPhysicsLocation().subtract(enemy.getLocalTranslation()).normalize().mult(5);
+                enemy.move(vec.mult(tpf));
         }
         
         for (Geometry fish: deadFish) {
             Vector3f vec = new Vector3f(0,1000,0).subtract(fish.getLocalTranslation()).normalize().mult(5);
-            fish.move(vec.mult(tpf));
+            fish.move(vec.mult(tpf/2));
         }
     }
     
@@ -402,6 +417,11 @@ public class Main extends SimpleApplication implements ActionListener{
                         Geometry geo = closest.getGeometry();
                         if (geo.getParent().equals(shootables)) {
 //                            geo.removeFromParent();
+                            aliveEnemies.remove(geo);
+                            Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
+                            Texture texture = assetManager.loadTexture("Textures/deadFish.jpg");
+                            mat.setTexture("ColorMap", texture);
+                            geo.setMaterial(mat);
                             deadFish.add(geo);
                         }
                         
