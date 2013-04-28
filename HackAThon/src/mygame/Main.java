@@ -82,7 +82,7 @@ public class Main extends SimpleApplication implements ActionListener{
     private static final int MAX_X = 1280;
     private static final int MAX_Y = 720;
     
-    private int enemyNum = 200;
+    private int enemyNum = 500;
     private Vector3f[] direction = new Vector3f[enemyNum];
     private Geometry[] geom = new Geometry[enemyNum];
     
@@ -92,13 +92,23 @@ public class Main extends SimpleApplication implements ActionListener{
     
     private float timeElapsed;
     private int playerHealth;
+    private int totalScore;
+    
     private ArrayList<Spatial> aliveEnemies;
     private ArrayList<Spatial> deadFish;
-    Spatial fish;
+    private Spatial fish;
+    
+    private BitmapText playerScoreBT;
+    private Node playerScoreNode;
+    private Node hudHolder;
+    
+    private BitmapText playerHealthTotal;
+    private Node playerHealthNode;
+    private Node hudHolder1;
     
     
         static {
-            /*
+        /*
          * Initialize the cannon ball geometry
          */
         sphere = new Sphere(50, 50, 0.03f);
@@ -112,7 +122,7 @@ public class Main extends SimpleApplication implements ActionListener{
         /*
          * Initialize the floor geometry
          */
-        floor = new Box(Vector3f.ZERO, 1000f, 2.0f, 500f);
+        floor = new Box(Vector3f.ZERO, 10000f, 2.0f, 5000f);
         floor.scaleTextureCoordinates(new Vector2f(3, 6));
     }
 
@@ -130,6 +140,7 @@ public class Main extends SimpleApplication implements ActionListener{
         playerHealth = 10;
         ammo = 12;
         reload = false;
+        totalScore = 0;
         
         tasks = new ArrayList<Timer>();
         deadFish = new ArrayList<Spatial>();
@@ -138,12 +149,7 @@ public class Main extends SimpleApplication implements ActionListener{
         
         // add a fish...
         fish = assetManager.loadModel("Models/fish1.obj");
-//        Material mat_default = new Material(
-//                assetManager, "Common/MatDefs/Misc/ShowNormals.j3md");
-////        mat_default.setColor("Color", ColorRGBA.Blue);
-//        fish.setMaterial(mat_default);
-//        fish.scale(5f);
-//        rootNode.attachChild(fish);
+
         /*
          * Set up physics
          */
@@ -159,18 +165,11 @@ public class Main extends SimpleApplication implements ActionListener{
         setUpKeys();
         setUpLight();
         
-        // We load the scen from the zip file and adjust its size.
-//        assetManager.registerLocator("town.zip", ZipLocator.class);
-//        sceneModel = assetManager.loadModel("main.scene");
-//        sceneModel.setLocalScale(2f);
         
         /*
          * We set up collision detection for the scene by creating a
          * compound collision shape and a static RigidBodyControl with mass zero.
          */
-//        CollisionShape sceneShape = CollisionShapeFactory.createMeshShape( (Node) sceneModel);
-//        landscape = new RigidBodyControl(sceneShape, 0);
-//        sceneModel.addControl(landscape);
         shootables = new Node("shootables");
         rootNode.attachChild(shootables);
         loadTreasureChests();
@@ -198,6 +197,14 @@ public class Main extends SimpleApplication implements ActionListener{
         
         setupPhysics();
 
+        hudHolder = new Node();
+        playerScoreNode = new Node();
+        playerScoreBT = new BitmapText(guiFont, false);
+        
+        hudHolder1 = new Node();
+        playerHealthNode = new Node();
+        playerHealthTotal = new BitmapText(guiFont, false);
+        
         
         for(int i=0; i<enemyNum; i++)
 	{
@@ -211,6 +218,14 @@ public class Main extends SimpleApplication implements ActionListener{
                 fish.scale(1f);	
                 fish.rotate(0, 55f, 0);
                 aliveEnemies.add(fish);
+            } else if (i % 2 == 0) {
+                Box box = new Box(Vector3f.ZERO, 1, 1, 1);
+                Geometry cube = new Geometry("EvilFish", box);
+                Material mat1 = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+                Texture texture = assetManager.loadTexture("Textures/fishPic.jpg");
+                mat1.setTexture("ColorMap", texture);
+                cube.setMaterial(mat1);
+                aliveEnemies.add(cube);
             } else {
                 Spatial fish = assetManager.loadModel("Models/fish1.obj");
                 Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
@@ -246,6 +261,19 @@ public class Main extends SimpleApplication implements ActionListener{
     @Override
     public void simpleUpdate(float tpf) {
         
+                            if(guiNode.hasChild(hudHolder1)){
+                       hudHolder.detachChildNamed("hud1");
+                   }
+                    String str2 = playerHealth + "";
+                    BitmapText hudText1 = new BitmapText(guiFont, false);          
+                    hudText1.setSize(30);      // font size
+                    hudText1.setColor(ColorRGBA.Red);                             // font color
+                    hudText1.setText("Health: " + str2);             // the text
+                    hudText1.setLocalTranslation(60, 600, 0); // position
+                    hudText1.setName("hud1");
+                    hudHolder.attachChild(hudText1);
+                    guiNode.attachChild(hudHolder1);
+        
         for ( int i = 0; i < tasks.size(); i++ ) {
             
             Timer t = tasks.get(i);
@@ -253,7 +281,7 @@ public class Main extends SimpleApplication implements ActionListener{
             if (t.timeElapsed > t.delayTime) {
                 // Call method
                 if (t.task.equals("removePicture")) {
-                    removePicture("Treasure");
+                    removePicture("Score");
                 }
                 tasks.remove(t);
             }
@@ -280,7 +308,17 @@ public class Main extends SimpleApplication implements ActionListener{
         
         for( Spatial enemy: aliveEnemies) {
             Vector3f vec = player.getPhysicsLocation().subtract(enemy.getLocalTranslation()).normalize().mult(5);
+            
+            if (enemy.getLocalScale().distance(cam.getLocation()) > 5.5) {
+//                System.out.println(enemy.getLocalScale().distance(cam.getLocation()));
                 enemy.move(vec.mult(tpf));
+//                System.out.println("You have Not been hit!!\n\n");
+            } else {
+                enemy.move(vec.mult(-tpf));
+                changeHealth(-1);
+                System.out.println("You have been hit!!\n\n");
+            }
+            
         }
         
         for (Spatial fish: deadFish) {
@@ -346,8 +384,8 @@ public class Main extends SimpleApplication implements ActionListener{
                     rootNode.attachChild(geo);
                     int xCoor = (MAX_X/2) - ((settings.getWidth() / 4) / 2);
                     int yCoor = (MAX_Y/2) - ((settings.getHeight() / 4) / 2);
-                    setPicture("Materials/+500.png", "Treasure", xCoor, yCoor);
-
+                    setPicture("Materials/+500.png", "Score", xCoor, yCoor);
+                    addToPlayerScore(500);
                     Timer task = new Timer(1, "removePicture");
                     tasks.add(task); 
                     }
@@ -404,6 +442,19 @@ public class Main extends SimpleApplication implements ActionListener{
                 //If you have ammo then shoot! Depreciates the value by 1 everytime
                else if(!reload && ammo > 0){
                    
+                   if(guiNode.hasChild(hudHolder)){
+                       hudHolder.detachChildNamed("hud");
+                   }
+                    String strI = Integer.toString(ammo);
+                    BitmapText hudText = new BitmapText(guiFont, false);          
+                    hudText.setSize(30);      // font size
+                    hudText.setColor(ColorRGBA.Red);                             // font color
+                    hudText.setText("Bullets: " + strI);             // the text
+                    hudText.setLocalTranslation(60, 665, 0); // position
+                    hudText.setName("hud");
+                    hudHolder.attachChild(hudText);
+                    guiNode.attachChild(hudHolder);
+                   
 
 
                    //   Reset results list.
@@ -422,13 +473,39 @@ public class Main extends SimpleApplication implements ActionListener{
                         CollisionResult closest = results.getClosestCollision();
                         Geometry geo = closest.getGeometry();
                         if (geo.getParent().equals(shootables)) {
-//                            geo.removeFromParent();
                             aliveEnemies.remove(geo);
-                            Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
-                            Texture texture = assetManager.loadTexture("Materials/fish-skeleton.jpg");
-                            mat.setTexture("ColorMap", texture);
-                            geo.setMaterial(mat);
-                            deadFish.add(geo);
+                            int xCoor = (MAX_X/2) - ((settings.getWidth() / 4) / 2);
+                            int yCoor = (MAX_Y/2) - ((settings.getHeight() / 4) / 2);
+                            
+                            Material mat1 = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+                            Texture texture = assetManager.loadTexture("Textures/fishPic.jpg");
+                            mat1.setTexture("ColorMap", texture);
+                            
+                            if (geo.getName().equals("EvilFish")) {
+                                setPicture("Materials/+1.png", "Score", xCoor, yCoor);
+                                Timer task = new Timer(1, "removePicture");
+                                tasks.add(task); 
+                                addToPlayerScore(1);
+                                deadFish.add(geo);
+                                Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
+                                texture = assetManager.loadTexture("Textures/deadFish.jpg");
+                                mat.setTexture("ColorMap", texture);
+                                geo.setMaterial(mat);
+                            } else {
+                                
+                                addToPlayerScore(-1);
+                                Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
+                                texture = assetManager.loadTexture("Materials/fish-skeleton.jpg");
+                                mat.setTexture("ColorMap", texture);
+                                geo.setMaterial(mat);
+                                deadFish.add(geo);
+                                setPicture("Materials/_1.png", "Score", xCoor, yCoor);
+                                Timer task = new Timer(1, "removePicture");
+                                tasks.add(task); 
+                            }
+                            
+                            
+                            
                         }
                         
 
@@ -469,17 +546,45 @@ public class Main extends SimpleApplication implements ActionListener{
        public void run() {
          ammo = 12;
          reload = false;
-//         guiNode.detachChildNamed("hud");
-//        String strI = Integer.toString(ammo);
-//        BitmapText hudText = new BitmapText(guiFont, false);          
-//        hudText.setSize(30);      // font size
-//        hudText.setColor(ColorRGBA.Blue);                             // font color
-//        hudText.setText("Ammo: " + strI);             // the text
-//        hudText.setLocalTranslation(60, 700, 0); // position
-//        hudText.setName("hud");
-//        guiNode.attachChild(hudText);
        }
      };
+        
+         /**
+     * 
+     * This method will convert the playerscore int to string and then add 
+     * it to the player score bitmap text
+     * 
+     */
+    private void addToPlayerScore(int score){
+        totalScore += score;
+        String strng = totalScore + "";
+        if(guiNode.hasChild(playerScoreNode))
+        {
+            guiNode.detachChildNamed("playerscore");
+        }
+        playerScoreBT.setText("Score: " +strng);
+        playerScoreBT.setSize(30);      // font size
+        playerScoreBT.setColor(ColorRGBA.Red);                // the text
+        playerScoreBT.setLocalTranslation(60, 700, 0); // position
+        playerScoreBT.setName("playerscore");
+        playerScoreNode.attachChild(playerScoreBT);
+        guiNode.attachChild(playerScoreNode);
+    }
+    
+    private void changeHealth(int health) {
+        playerHealth += health;
+        String strng = playerHealth + "";
+        if (guiNode.hasChild(playerHealthNode)) {
+            guiNode.detachChildNamed("playerHealth");
+        }
+        playerHealthTotal.setText("Health: " + strng);
+        playerHealthTotal.setSize(30);
+        playerHealthTotal.setColor(ColorRGBA.Red);
+        playerHealthTotal.setLocalTranslation(60, 600, 0);
+        playerHealthTotal.setName("playerHealth");
+        playerHealthNode.attachChild(playerHealthTotal);
+        guiNode.attachChild(playerHealthNode);
+    }
 
 
     private void setUpLight() {
@@ -561,8 +666,6 @@ public class Main extends SimpleApplication implements ActionListener{
         cam.lookAt(new Vector3f(2, 2, 0), Vector3f.UNIT_Y);
         // Initialze the scene, materials, and physics space
         initMaterials();
-//        initWall();
-//        initFloor();
         initCrossHairs();
     }
     
