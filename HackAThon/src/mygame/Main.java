@@ -83,7 +83,7 @@ public class Main extends SimpleApplication implements ActionListener{
     private static final int MAX_X = 1280;
     private static final int MAX_Y = 720;
     
-    private int enemyNum = 500;
+    private int enemyNum = 1000;
     private Vector3f[] direction = new Vector3f[enemyNum];
     private Geometry[] geom = new Geometry[enemyNum];
     
