@@ -265,6 +265,16 @@ public class Main extends SimpleApplication implements ActionListener{
                 
                 sw.move(new Vector3f(FastMath.nextRandomInt(-500,500),  2f, FastMath.nextRandomInt(-500,500)));
                 rootNode.attachChild(sw);
+                
+                                 Spatial sw2 = assetManager.loadModel("Models/seaweed2.obj");
+                Material mat2 = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
+                Texture texture2 = assetManager.loadTexture("Textures/green.png");
+                mat2.setTexture("ColorMap", texture2);
+                sw2.setMaterial(mat2);
+                sw2.scale(0.5f);	
+                
+                sw2.move(new Vector3f(FastMath.nextRandomInt(-1000,1000),  2f, FastMath.nextRandomInt(-1000,1000)));
+                rootNode.attachChild(sw2);
         }
         
     }
@@ -325,9 +335,10 @@ public class Main extends SimpleApplication implements ActionListener{
         cam.setLocation(player.getPhysicsLocation());
         
         for( Spatial enemy: aliveEnemies) {
-            Vector3f vec = player.getPhysicsLocation().subtract(enemy.getLocalTranslation()).normalize().mult(5);
             
-            if (enemy.getLocalScale().distance(cam.getLocation()) > 5.5) {
+            if (enemy.getName().equals("EvilFish")) {
+                Vector3f vec = player.getPhysicsLocation().subtract(enemy.getLocalTranslation()).normalize().mult(5);
+                if (enemy.getLocalScale().distance(cam.getLocation()) > 5.5) {
 //                System.out.println(enemy.getLocalScale().distance(cam.getLocation()));
                 enemy.move(vec.mult(tpf));
 //                System.out.println("You have Not been hit!!\n\n");
@@ -336,6 +347,11 @@ public class Main extends SimpleApplication implements ActionListener{
                 changeHealth(-1);
                 System.out.println("You have been hit!!\n\n");
             }
+            } else {
+             Vector3f vec = player.getPhysicsLocation().add(enemy.getLocalTranslation()).normalize().mult(5);   
+             enemy.move(vec.mult(tpf));
+            }
+            
             
         }
         
@@ -397,9 +413,9 @@ public class Main extends SimpleApplication implements ActionListener{
                 if ( closest.getDistance() < 9.0f ) {                    
 
                     if (geo.getParent().equals(treasureChests)) {
-                       geo.getMaterial().setColor("Color", ColorRGBA.Black);
+//                       geo.getMaterial().setColor("Color", ColorRGBA.Black);
                     geo.removeFromParent();
-                    rootNode.attachChild(geo);
+//                    rootNode.attachChild(geo);
                     int xCoor = (MAX_X/2) - ((settings.getWidth() / 4) / 2);
                     int yCoor = (MAX_Y/2) - ((settings.getHeight() / 4) / 2);
                     setPicture("Materials/+500.png", "Score", xCoor, yCoor);
