@@ -84,7 +84,7 @@ public class Main extends SimpleApplication implements ActionListener{
     private static final int MAX_X = 1280;
     private static final int MAX_Y = 720;
     
-    private int enemyNum = 1000;
+    private int enemyNum = 500;
     private Vector3f[] direction = new Vector3f[enemyNum];
     private Geometry[] geom = new Geometry[enemyNum];
     
@@ -219,23 +219,24 @@ public class Main extends SimpleApplication implements ActionListener{
         for(int i=0; i<enemyNum; i++)
 	{
             
-            if ( i % 4 == 0) {
-                Spatial fish = assetManager.loadModel("Models/seahorse.obj");
-                Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
-                Texture texture = assetManager.loadTexture("Textures/SEHOBODT.JPG");
-                mat.setTexture("ColorMap", texture);
-                fish.setMaterial(mat);
-                fish.scale(1f);	
-                fish.rotate(0, 55f, 0);
-                aliveEnemies.add(fish);
-            } else if (i % 2 == 0) {
-                Box box = new Box(Vector3f.ZERO, 1, 1, 1);
+            if ( i % 5 == 0) {
+            	    Box box = new Box(Vector3f.ZERO, 1, 1, 1);
                 Geometry cube = new Geometry("EvilFish", box);
                 Material mat1 = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
                 Texture texture = assetManager.loadTexture("Textures/fishPic.jpg");
                 mat1.setTexture("ColorMap", texture);
                 cube.setMaterial(mat1);
                 aliveEnemies.add(cube);
+              
+            } else if (i % 2 == 0) {
+              Spatial fish = assetManager.loadModel("Models/fish1.obj");
+                Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
+                Texture texture = assetManager.loadTexture("Textures/PTERO_01.jpg");
+                mat.setTexture("ColorMap", texture);
+                fish.setMaterial(mat);
+                fish.scale(1f);	
+                fish.rotate(0, 55f, 0);
+                aliveEnemies.add(fish);
             } else {
                 Spatial fish = assetManager.loadModel("Models/seaweed.obj");
                 Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
@@ -252,9 +253,9 @@ public class Main extends SimpleApplication implements ActionListener{
 
   	for(int j=0; j<enemyNum; j++)
         {
-            int x = FastMath.nextRandomInt(-500, 500);
-            int y = FastMath.nextRandomInt(0, 200);
-            int z = FastMath.nextRandomInt(-500, 500);
+            int x = FastMath.nextRandomInt(-600, 600);
+            int y = FastMath.nextRandomInt(0, 60);
+            int z = FastMath.nextRandomInt(-600, 600);
             aliveEnemies.get(j).move(x, y, z);
             shootables.attachChild(aliveEnemies.get(j));
             
@@ -267,7 +268,7 @@ public class Main extends SimpleApplication implements ActionListener{
                 sw.setMaterial(mat);
                 sw.scale(75f);	
                 
-                sw.move(new Vector3f(FastMath.nextRandomInt(-500,500),  2f, FastMath.nextRandomInt(-500,500)));
+                sw.move(new Vector3f(FastMath.nextRandomInt(-600,600),  2f, FastMath.nextRandomInt(-600,600)));
                 rootNode.attachChild(sw);
                 
                                  Spatial sw2 = assetManager.loadModel("Models/seaweed2.obj");
@@ -341,7 +342,7 @@ public class Main extends SimpleApplication implements ActionListener{
         for( Spatial enemy: aliveEnemies) {
             
             if (enemy.getName().equals("EvilFish")) {
-                Vector3f vec = player.getPhysicsLocation().subtract(enemy.getLocalTranslation()).normalize().mult(5);
+                Vector3f vec = player.getPhysicsLocation().subtract(enemy.getLocalTranslation()).normalize().mult(10);
                 if (enemy.getLocalScale().distance(cam.getLocation()) > 5.5) {
 //                System.out.println(enemy.getLocalScale().distance(cam.getLocation()));
                 enemy.move(vec.mult(tpf));
@@ -352,7 +353,7 @@ public class Main extends SimpleApplication implements ActionListener{
                 System.out.println("You have been hit!!\n\n");
             }
             } else {
-             Vector3f vec = player.getPhysicsLocation().add(enemy.getLocalTranslation()).normalize().mult(5);   
+             Vector3f vec = player.getPhysicsLocation().add(enemy.getLocalTranslation()).normalize().mult(1);   
              enemy.move(vec.mult(tpf));
             }
             
@@ -360,7 +361,7 @@ public class Main extends SimpleApplication implements ActionListener{
         }
         
         for (Spatial fish: deadFish) {
-            Vector3f vec = new Vector3f(0,1000,0).subtract(fish.getLocalTranslation()).normalize().mult(10);
+            Vector3f vec = new Vector3f(0,1000,0).subtract(fish.getLocalTranslation()).normalize().mult(7);
             fish.move(vec.mult(tpf/2));
         }
 
