@@ -228,7 +228,7 @@ public class Main extends SimpleApplication implements ActionListener{
                 cube.setMaterial(mat1);
                 aliveEnemies.add(cube);
               
-            } else if (i % 2 == 0) {
+            } else if (i % 1 == 0) {
               Spatial fish = assetManager.loadModel("Models/fish1.obj");
                 Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");  // create a simple material
                 Texture texture = assetManager.loadTexture("Textures/PTERO_01.jpg");
@@ -342,7 +342,7 @@ public class Main extends SimpleApplication implements ActionListener{
         for( Spatial enemy: aliveEnemies) {
             
             if (enemy.getName().equals("EvilFish")) {
-                Vector3f vec = player.getPhysicsLocation().subtract(enemy.getLocalTranslation()).normalize().mult(10);
+                Vector3f vec = player.getPhysicsLocation().subtract(enemy.getLocalTranslation()).normalize().mult(9);
                 if (enemy.getLocalScale().distance(cam.getLocation()) > 5.5) {
 //                System.out.println(enemy.getLocalScale().distance(cam.getLocation()));
                 enemy.move(vec.mult(tpf));
@@ -361,7 +361,7 @@ public class Main extends SimpleApplication implements ActionListener{
         }
         
         for (Spatial fish: deadFish) {
-            Vector3f vec = new Vector3f(0,1000,0).subtract(fish.getLocalTranslation()).normalize().mult(7);
+            Vector3f vec = new Vector3f(0,1000,0).subtract(fish.getLocalTranslation()).normalize().mult(5);
             fish.move(vec.mult(tpf/2));
         }
 
