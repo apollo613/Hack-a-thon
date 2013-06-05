@@ -575,11 +575,13 @@ public class Main extends SimpleApplication implements ActionListener{
             else if (name.equals("reload")  && !isPressed) {
 
                                 if(reload){
-                    worker.schedule(loadAmmo, 2, TimeUnit.SECONDS);
+                    worker.schedule(loadAmmo, 1, TimeUnit.SECONDS);
                     guiNode.detachChildNamed("Reload");
+                    audio_reload.playInstance();
                 }
                 else{
-                   worker.schedule(loadAmmo, 2, TimeUnit.SECONDS);
+                   worker.schedule(loadAmmo, 1, TimeUnit.SECONDS);
+                   audio_reload.playInstance();
                 }
             }
         }
@@ -791,6 +793,11 @@ public class Main extends SimpleApplication implements ActionListener{
     audio_gun = new AudioNode(assetManager, "Sounds/Effects/Gun.wav", false);
     audio_gun.setLooping(false);
     audio_gun.setVolume(3);
+    rootNode.attachChild(audio_gun);
+    
+     audio_reload = new AudioNode(assetManager, "Sounds/Effects/gunreload33.wav", false);
+    audio_reload.setLooping(false);
+    audio_reload.setVolume(3);
     rootNode.attachChild(audio_gun);
  
     /* nature sound - keeps playing in a loop. */
