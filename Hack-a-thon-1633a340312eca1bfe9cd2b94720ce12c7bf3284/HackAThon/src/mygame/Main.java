@@ -556,7 +556,7 @@ public class Main extends SimpleApplication implements ActionListener{
                     for (int i = 0; i < results.size(); i++) {
                     // For each hit, we know distance, impact point, name of geometry.
                     String hit = results.getCollision(i).getGeometry().getName();
-                    
+                   //what is this doing here?? (git test comment) 
                     if(hit.toString().equalsIgnoreCase("Brick"))
                     {
                         
