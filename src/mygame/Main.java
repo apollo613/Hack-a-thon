@@ -43,7 +43,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * test
- * @author normenhansen //who is this guy
+ * @author normenhansen
  */
 public class Main extends SimpleApplication implements ActionListener{
  
