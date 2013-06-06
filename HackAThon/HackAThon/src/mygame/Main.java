@@ -111,6 +111,7 @@ public class Main extends SimpleApplication implements ActionListener{
     
     private AudioNode audio_gun;
     private AudioNode audio_water;
+    private AudioNode audio_reload;
     
     
         static {
