@@ -362,7 +362,7 @@ public class Main extends SimpleApplication implements ActionListener{
         }
         
         for (Spatial fish: deadFish) {
-            Vector3f vec = new Vector3f(0,1000,0).subtract(fish.getLocalTranslation()).normalize().mult(5);
+            Vector3f vec = new Vector3f(0,1000,0).subtract(fish.getLocalTranslation()).normalize().mult(4);
             fish.move(vec.mult(tpf/2));
         }
 
